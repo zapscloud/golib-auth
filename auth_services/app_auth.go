@@ -52,12 +52,19 @@ func GetBusinessIdFromClaims(claims Claims) (string, error) {
 
 	if claims.ClientType == auth_common.CLIENT_TYPE_BUSINESS {
 		businessId = claims.ClientScope
+		if len(businessId) == 0 {
+			err = &utils.AppError{
+				ErrorStatus: 401,
+				ErrorMsg:    "BusinessId Error",
+				ErrorDetail: "BusinessId not available in AuthToken"}
+		}
 	} else {
 		err = &utils.AppError{
 			ErrorStatus: 401,
 			ErrorMsg:    "Invalid Client Type",
 			ErrorDetail: "Client Type is Invalid"}
 	}
+	
 	return businessId, err
 }
 
@@ -67,12 +74,19 @@ func GetUserIdFromClaims(claims Claims) (string, error) {
 
 	if claims.ClientType == auth_common.CLIENT_TYPE_BUSINESS {
 		userId = claims.UserId
+		if len(userId) == 0 {
+			err = &utils.AppError{
+				ErrorStatus: 401,
+				ErrorMsg:    "UserId Error",
+				ErrorDetail: "UserId/CustomerId not available in AuthToken"}
+		}
 	} else {
 		err = &utils.AppError{
 			ErrorStatus: 401,
 			ErrorMsg:    "Invalid Client Type",
 			ErrorDetail: "Client Type is Invalid"}
 	}
+
 	return userId, err
 }
 
