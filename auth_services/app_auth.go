@@ -64,7 +64,7 @@ func GetBusinessIdFromClaims(claims Claims) (string, error) {
 			ErrorMsg:    "Invalid Client Type",
 			ErrorDetail: "Client Type is Invalid"}
 	}
-	
+
 	return businessId, err
 }
 
@@ -183,12 +183,23 @@ func ValidateInputParams(ctx *fiber.Ctx) (utils.Map, error) {
 
 	log.Println("ValidateInputParams : ", dataAuth)
 
+	// Validate Grant Type
+	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
+
+	if grantType != auth_common.GRANT_TYPE_CLIENT_CREDENTIALS &&
+		grantType != auth_common.GRANT_TYPE_PASSWORD &&
+		grantType != auth_common.GRANT_TYPE_REFRESH {
+		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Invalid Grant Type"}
+		return nil, err
+
+	}
+
 	if dataAuth[auth_common.CLIENT_ID] == "" || dataAuth[auth_common.CLIENT_SECRET] == "" {
 		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing  Client Credentials"}
 		return nil, err
 	}
 
-	if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_PASSWORD {
+	if grantType == auth_common.GRANT_TYPE_PASSWORD {
 		if dataAuth[auth_common.USERNAME] == "" {
 			err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing User Name"}
 			return nil, err
@@ -199,7 +210,7 @@ func ValidateInputParams(ctx *fiber.Ctx) (utils.Map, error) {
 			return nil, err
 		}
 
-	} else if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_REFRESH {
+	} else if grantType == auth_common.GRANT_TYPE_REFRESH {
 		if dataAuth[auth_common.REFRESH_TOKEN] == "" {
 			err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing User Name"}
 			return nil, err
