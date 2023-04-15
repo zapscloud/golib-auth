@@ -189,13 +189,13 @@ func ValidateInputParams(ctx *fiber.Ctx) (utils.Map, error) {
 	if grantType != auth_common.GRANT_TYPE_CLIENT_CREDENTIALS &&
 		grantType != auth_common.GRANT_TYPE_PASSWORD &&
 		grantType != auth_common.GRANT_TYPE_REFRESH {
-		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Invalid Grant Type"}
+		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Invalid Grant Type : [" + grantType + "]"}
 		return nil, err
 
 	}
 
 	if dataAuth[auth_common.CLIENT_ID] == "" || dataAuth[auth_common.CLIENT_SECRET] == "" {
-		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing  Client Credentials"}
+		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing Client Credentials"}
 		return nil, err
 	}
 
