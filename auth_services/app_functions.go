@@ -66,7 +66,7 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	// Note that we are passing the key in this method as well. This method will return an error
 	// if the token is invalid (if it has expired according to the expiry time we set on sign in),
 	// or if the signature does not match
-	jwtKey := utils.GetJwtKey()
+	jwtKey := auth_common.GetJwtKey()
 
 	tkn, err := jwt.ParseWithClaims(authtoken, claims, func(token *jwt.Token) (interface{}, error) {
 		log.Println("Token value ", token)

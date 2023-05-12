@@ -1,5 +1,10 @@
 package auth_common
 
+import (
+	"log"
+	"os"
+)
+
 // Client Types
 const (
 	CLIENT_TYPE_APP      = "app"
@@ -50,3 +55,9 @@ const (
 
 	RETURN_TOKEN_TYPE = "Bearer"
 )
+
+func GetJwtKey() string {
+	jwtKey := os.Getenv("APP_JWT_KEY")
+	log.Println("AppCommon::GetJwdKey ", jwtKey)
+	return jwtKey
+}

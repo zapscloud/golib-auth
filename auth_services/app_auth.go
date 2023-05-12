@@ -224,7 +224,7 @@ func GetAuthToken(authClaims Claims) Claims {
 	log.Println("GetAuthToken::Auth token claims ", authClaims)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims)
-	tokenString, err := token.SignedString([]byte(utils.GetJwtKey()))
+	tokenString, err := token.SignedString([]byte(auth_common.GetJwtKey()))
 	if err != nil {
 		log.Println("Error in SignedString:", err)
 	}
