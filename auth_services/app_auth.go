@@ -147,7 +147,17 @@ func GetBasicAuth(ctx *fiber.Ctx) (string, string, error) {
 
 }
 
-func ParseScope(scope_value string) utils.Map {
+func getScope(dataAuth utils.Map) utils.Map {
+	mapScopes := utils.Map{}
+	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && scopeValue.(string) != "" {
+		mapScopes = parseScope(scopeValue.(string))
+	}
+	log.Println("Scopes ", mapScopes)
+
+	return mapScopes
+}
+
+func parseScope(scope_value string) utils.Map {
 
 	mapScopes := utils.Map{}
 
@@ -262,23 +272,37 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	clientId := dataAuth[auth_common.CLIENT_ID].(string)
 	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
 
-	// Authenticate with AppClient tables
-	appClientData, err := AuthenticateAppClient(dbProps, clientId, clientSecret)
-	if err != nil {
-		return nil, err
+	// Get Scope values if anything passed
+	mapScopes := getScope(dataAuth)
+	clientType, _ := utils.IsMemberExist(mapScopes, auth_common.CLIENT_TYPE)
+	userType, _ := utils.IsMemberExist(mapScopes, auth_common.USER_TYPE)
+
+	var clientData utils.Map
+	var err error
+
+	if clientType == auth_common.CLIENT_TYPE_PLATFORM || // When scope: "client_type: platform"
+		clientType == "" || // When no scope parameter
+		userType == auth_common.USER_TYPE_PLATFORM { // when scope: "user_type: platform"
+
+		// Authenticate with SysClient table
+		clientData, err = authenticateSysClient(dbProps, clientId, clientSecret)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+
+		// Authenticate with AppClient tables
+		clientData, err = authenticateAppClient(dbProps, clientId, clientSecret)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	log.Println("Auth Client Record ", appClientData, err)
+	log.Println("Auth Client Record ", clientData, err)
 
-	dataAuth[platform_common.FLD_CLIENT_TYPE] = appClientData[platform_common.FLD_CLIENT_TYPE].(string)
-	dataAuth[platform_common.FLD_CLIENT_SCOPE] = appClientData[platform_common.FLD_CLIENT_SCOPE].(string)
-
-	mapScopes := utils.Map{}
-	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && scopeValue.(string) != "" {
-		mapScopes = ParseScope(scopeValue.(string))
-	}
-
-	log.Println("Scopes ", mapScopes)
+	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientData[platform_common.FLD_CLIENT_TYPE].(string)
+	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientData[platform_common.FLD_CLIENT_SCOPE].(string)
 
 	if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_PASSWORD {
 

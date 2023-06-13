@@ -93,7 +93,31 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	return nil
 }
 
-func AuthenticateAppClient(dbProps utils.Map, clientId string, clientSecret string) (utils.Map, error) {
+func authenticateSysClient(dbProps utils.Map, clientId string, clientSecret string) (utils.Map, error) {
+	// Create Service Instance
+	sysClientService, err := platform_services.NewSysClientService(dbProps)
+	if err != nil {
+		log.Println("Client DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
+		return utils.Map{}, err
+	}
+	defer sysClientService.EndService()
+
+	log.Println("Auth key and secret ", clientId, clientSecret)
+
+	//filter := fmt.Sprintf(`{"%s":"%s","%s":"%s"}`, platform_common.FLD_CLIENT_ID, clientId, platform_common.FLD_CLIENT_SECRET, clientSecret)
+	//authrecord, err := appClientService.Find(filter)
+	sysClientData, err := sysClientService.Authenticate(clientId, clientSecret)
+	if err != nil {
+		log.Println("Auth DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
+		return utils.Map{}, err
+	}
+
+	return sysClientData, nil
+}
+
+func authenticateAppClient(dbProps utils.Map, clientId string, clientSecret string) (utils.Map, error) {
 	// Create Service Instance
 	appClientService, err := platform_services.NewAppClientService(dbProps)
 	if err != nil {
@@ -117,6 +141,25 @@ func AuthenticateAppClient(dbProps utils.Map, clientId string, clientSecret stri
 	return appClientData, nil
 }
 
+func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
+
+	serviceSysUser, err := platform_services.NewSysUserService(dbProps)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
+		return utils.Map{}, err
+	}
+	defer serviceSysUser.EndService()
+
+	log.Println("Business::Auth:: Parameter Value ", auth_key, auth_key_value)
+	sysUserData, err := serviceSysUser.Authenticate(auth_key, auth_key_value, auth_password)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
+		return utils.Map{}, err
+	}
+
+	return sysUserData, nil
+}
+
 func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
 
 	// User Validation
@@ -136,23 +179,4 @@ func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 
 	return appUserData, nil
-}
-
-func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
-
-	serviceSysUser, err := platform_services.NewSysUserService(dbProps)
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
-		return utils.Map{}, err
-	}
-	defer serviceSysUser.EndService()
-
-	log.Println("Business::Auth:: Parameter Value ", auth_key, auth_key_value)
-	sysUserData, err := serviceSysUser.Authenticate(auth_key, auth_key_value, auth_password)
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
-		return utils.Map{}, err
-	}
-
-	return sysUserData, nil
 }

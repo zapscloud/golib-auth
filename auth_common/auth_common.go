@@ -10,11 +10,7 @@ const (
 	CLIENT_TYPE_APP      = "app"
 	CLIENT_TYPE_USER     = "user"
 	CLIENT_TYPE_BUSINESS = "business"
-)
-
-// Client Scopes
-const (
-	CLIENT_SCOPE_PLATFORM = "platform"
+	CLIENT_TYPE_PLATFORM = "platform"
 )
 
 // For Auth Verification
