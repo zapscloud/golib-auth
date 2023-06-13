@@ -13,6 +13,11 @@ const (
 	CLIENT_TYPE_PLATFORM = "platform"
 )
 
+// Client Scopes
+const (
+	CLIENT_SCOPE_PLATFORM = "platform"
+)
+
 // For Auth Verification
 const (
 	TOKEN_BEARER  = "bearer"
