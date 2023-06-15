@@ -281,7 +281,6 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	var err error
 
 	if clientType == auth_common.CLIENT_TYPE_PLATFORM || // When scope: "client_type: platform"
-		clientType == "" || // When no scope parameter
 		userType == auth_common.USER_TYPE_PLATFORM { // when scope: "user_type: platform"
 
 		// Authenticate with SysClient table
