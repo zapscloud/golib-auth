@@ -244,9 +244,10 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		// Obtain BusinessId value
 		businessId, err := utils.GetMemberDataStr(mapScopes, platform_common.FLD_BUSINESS_ID)
 		if err != nil {
-			// No business_id sent in parameter, if the clientType is business use the clientScope as businessId
-			if clientType == auth_common.CLIENT_TYPE_BUSINESS {
-				businessId = clientScope
+			if clientType == auth_common.CLIENT_TYPE_APP && clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
+				businessId = "" // Ignore the businessId
+			} else if clientType == auth_common.CLIENT_TYPE_BUSINESS {
+				businessId = clientScope // Take clientScope as businessId
 			} else {
 				return nil, err
 			}
