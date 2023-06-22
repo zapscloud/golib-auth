@@ -218,24 +218,14 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	// Get Scope values if anything passed
 	mapScopes := getScope(dataAuth)
 	// Obtain ClientType value
-	clientType, err := utils.IsMemberExist(mapScopes, auth_common.CLIENT_TYPE)
+	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
 	if err != nil {
 		return nil, err
 	}
 	// obtain ClientScope value
-	clientScope, err := utils.IsMemberExist(mapScopes, auth_common.CLIENT_SCOPE)
+	clientScope, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_SCOPE)
 	if err != nil {
 		return nil, err
-	}
-	// Obtain BusinessId value
-	businessId, err := utils.IsMemberExist(mapScopes, platform_common.FLD_BUSINESS_ID)
-	if err != nil {
-		// No business_id sent in parameter, if the clientType is business use the clientScope as businessId
-		if clientType == auth_common.CLIENT_TYPE_BUSINESS {
-			businessId = clientScope
-		} else {
-			return nil, err
-		}
 	}
 
 	// Authenticate with AppClient tables
@@ -248,9 +238,21 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientData[platform_common.FLD_CLIENT_TYPE].(string)
 	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientData[platform_common.FLD_CLIENT_SCOPE].(string)
-	dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 
 	if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_PASSWORD {
+
+		// Obtain BusinessId value
+		businessId, err := utils.GetMemberDataStr(mapScopes, platform_common.FLD_BUSINESS_ID)
+		if err != nil {
+			// No business_id sent in parameter, if the clientType is business use the clientScope as businessId
+			if clientType == auth_common.CLIENT_TYPE_BUSINESS {
+				businessId = clientScope
+			} else {
+				return nil, err
+			}
+		}
+		// Assign BusinessId in AuthData
+		dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 
 		// Check the scope->client_scope
 		if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
@@ -259,7 +261,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 			// Default authKey is user_id
 			authKey := platform_common.FLD_SYS_USER_ID
 
-			loginType, _ := utils.IsMemberExist(mapScopes, auth_common.LOGIN_TYPE)
+			loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
 			if loginType == auth_common.LOGIN_TYPE_EMAIL {
 				authKey = platform_common.FLD_SYS_USER_EMAILID
 			} else if loginType == auth_common.LOGIN_TYPE_PHONE {
@@ -283,7 +285,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 			// Default authKey is user_id
 			authKey := platform_common.FLD_APP_USER_ID
 
-			loginType, _ := utils.IsMemberExist(mapScopes, auth_common.LOGIN_TYPE)
+			loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
 			if loginType == auth_common.LOGIN_TYPE_EMAIL {
 				authKey = platform_common.FLD_APP_USER_EMAILID
 			} else if loginType == auth_common.LOGIN_TYPE_PHONE {

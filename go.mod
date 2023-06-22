@@ -7,7 +7,7 @@ require (
 	github.com/gofiber/utils v1.0.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/zapscloud/golib-platform v1.0.1-0.20230622074054-b4377aaba4f9
-	github.com/zapscloud/golib-utils v1.0.1-0.20230622065648-c78682a6032e
+	github.com/zapscloud/golib-utils v1.0.1-0.20230622110613-b4f6b17a0f53
 )
 
 require (
