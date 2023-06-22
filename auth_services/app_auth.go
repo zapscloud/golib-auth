@@ -22,8 +22,8 @@ type Claims struct {
 	ClientScope string `json:"client_scope"`
 	ClientId    string `json:"client_id"`
 	GrandType   string `json:"grant_type"`
+	BusinessId  string `json:"business_id,omitempty"`
 	UserId      string `json:"user_id,omitempty"`
-	UserType    string `json:"user_type,omitempty"`
 	TokenString string `json:"token_string,omitempty"`
 
 	jwt.RegisteredClaims
@@ -45,70 +45,6 @@ func AuthValidate(ctx *fiber.Ctx) (Claims, error) { // for validation process
 
 	return claims, nil
 }
-
-func GetBusinessIdFromClaims(claims Claims) (string, error) {
-	var businessId string = ""
-	var err error = nil
-
-	if claims.ClientType == auth_common.CLIENT_TYPE_BUSINESS {
-		businessId = claims.ClientScope
-		if len(businessId) == 0 {
-			err = &utils.AppError{
-				ErrorStatus: 401,
-				ErrorMsg:    "BusinessId Error",
-				ErrorDetail: "BusinessId not available in AuthToken"}
-		}
-	} else {
-		err = &utils.AppError{
-			ErrorStatus: 401,
-			ErrorMsg:    "Invalid Client Type",
-			ErrorDetail: "Client Type is Invalid"}
-	}
-
-	return businessId, err
-}
-
-func GetUserIdFromClaims(claims Claims) (string, error) {
-	var userId string = ""
-	var err error = nil
-
-	if claims.ClientType == auth_common.CLIENT_TYPE_BUSINESS {
-		userId = claims.UserId
-		if len(userId) == 0 {
-			err = &utils.AppError{
-				ErrorStatus: 401,
-				ErrorMsg:    "UserId Error",
-				ErrorDetail: "UserId/CustomerId not available in AuthToken"}
-		}
-	} else {
-		err = &utils.AppError{
-			ErrorStatus: 401,
-			ErrorMsg:    "Invalid Client Type",
-			ErrorDetail: "Client Type is Invalid"}
-	}
-
-	return userId, err
-}
-
-// func BusinessAuthValidate(businessId string, ctx *fiber.Ctx) (Claims, error) {
-// 	claims := Claims{}
-// 	err := ValidateBearerAuth(ctx, &claims)
-// 	if err != nil {
-// 		return claims, err
-// 	}
-
-// 	log.Println("BusinessAuthValidate::claims", claims)
-// 	if claims.ClientType != auth_common.CLIENT_TYPE_BUSINESS ||
-// 		claims.ClientScope != businessId {
-// 		err := &utils.AppError{
-// 			ErrorStatus: 401,
-// 			ErrorMsg:    "BusinessId Authorization Failed",
-// 			ErrorDetail: "BusinessId not matched with AuthClaims"}
-// 		return claims, err
-// 	}
-
-// 	return claims, nil
-// }
 
 func GetBasicAuth(ctx *fiber.Ctx) (string, string, error) {
 	// Get authorization header
@@ -204,24 +140,24 @@ func ValidateInputParams(ctx *fiber.Ctx) (utils.Map, error) {
 
 	}
 
-	if dataAuth[auth_common.CLIENT_ID] == "" || dataAuth[auth_common.CLIENT_SECRET] == "" {
+	if utils.IsEmpty(dataAuth[auth_common.CLIENT_ID].(string)) || utils.IsEmpty(dataAuth[auth_common.CLIENT_SECRET].(string)) {
 		err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing Client Credentials"}
 		return nil, err
 	}
 
 	if grantType == auth_common.GRANT_TYPE_PASSWORD {
-		if dataAuth[auth_common.USERNAME] == "" {
+		if utils.IsEmpty(dataAuth[auth_common.USERNAME].(string)) {
 			err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing User Name"}
 			return nil, err
 		}
 
-		if dataAuth[auth_common.PASSWORD] == "" {
+		if utils.IsEmpty(dataAuth[auth_common.PASSWORD].(string)) {
 			err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing User Password"}
 			return nil, err
 		}
 
 	} else if grantType == auth_common.GRANT_TYPE_REFRESH {
-		if dataAuth[auth_common.REFRESH_TOKEN] == "" {
+		if utils.IsEmpty(dataAuth[auth_common.REFRESH_TOKEN].(string)) {
 			err := &utils.AppError{ErrorStatus: 400, ErrorMsg: "Bad Request", ErrorDetail: "Missing User Name"}
 			return nil, err
 		}
@@ -265,6 +201,13 @@ func GetRefreshToken(ctx *fiber.Ctx) (Claims, error) {
 	return claims, nil
 }
 
+/**************************************************************************************
+**
+** ValidateAuthCredentials:
+**
+**
+**
+***************************************************************************************/
 func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
 	log.Printf("ValidateAppAuth %v", dataAuth)
@@ -274,89 +217,89 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 	// Get Scope values if anything passed
 	mapScopes := getScope(dataAuth)
-	clientType, _ := utils.IsMemberExist(mapScopes, auth_common.CLIENT_TYPE)
-	userType, _ := utils.IsMemberExist(mapScopes, auth_common.USER_TYPE)
-
-	var clientData utils.Map
-	var err error
-
-	if clientType == auth_common.CLIENT_TYPE_PLATFORM || // When scope: "client_type: platform"
-		userType == auth_common.USER_TYPE_PLATFORM { // when scope: "user_type: platform"
-
-		// Authenticate with SysClient table
-		clientData, err = authenticateSysClient(dbProps, clientId, clientSecret)
-		if err != nil {
+	// Obtain ClientType value
+	clientType, err := utils.IsMemberExist(mapScopes, auth_common.CLIENT_TYPE)
+	if err != nil {
+		return nil, err
+	}
+	// obtain ClientScope value
+	clientScope, err := utils.IsMemberExist(mapScopes, auth_common.CLIENT_SCOPE)
+	if err != nil {
+		return nil, err
+	}
+	// Obtain BusinessId value
+	businessId, err := utils.IsMemberExist(mapScopes, platform_common.FLD_BUSINESS_ID)
+	if err != nil {
+		// No business_id sent in parameter, if the clientType is business use the clientScope as businessId
+		if clientType == auth_common.CLIENT_TYPE_BUSINESS {
+			businessId = clientScope
+		} else {
 			return nil, err
 		}
+	}
 
-	} else {
-
-		// Authenticate with AppClient tables
-		clientData, err = authenticateAppClient(dbProps, clientId, clientSecret)
-		if err != nil {
-			return nil, err
-		}
+	// Authenticate with AppClient tables
+	clientData, err := authenticateAppClient(dbProps, clientId, clientSecret, clientType, clientScope)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Println("Auth Client Record ", clientData, err)
 
 	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientData[platform_common.FLD_CLIENT_TYPE].(string)
 	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientData[platform_common.FLD_CLIENT_SCOPE].(string)
+	dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 
 	if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_PASSWORD {
 
-		// userType with "App" or "Business"
-		if userType, userTypeOk := mapScopes[auth_common.USER_TYPE]; userTypeOk &&
-			(userType.(string) == auth_common.USER_TYPE_APP ||
-				userType.(string) == auth_common.USER_TYPE_BUSINESS) {
+		// Check the scope->client_scope
+		if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
+			// ****** Validate the Password credentials with "sysUser" Table ******
 
-			// Set default authKey as UserId
-			authKey := platform_common.FLD_APP_USER_ID
-			if loginType, loginTypeOK := mapScopes[auth_common.LOGIN_TYPE]; loginTypeOK {
-
-				loginType = loginType.(string)
-
-				if loginType == auth_common.LOGIN_TYPE_PHONE {
-					authKey = platform_common.FLD_APP_USER_PHONE
-				} else if loginType == auth_common.LOGIN_TYPE_EMAIL {
-					authKey = platform_common.FLD_APP_USER_EMAILID
-				}
-			}
-
-			authKeyValue := dataAuth[auth_common.USERNAME].(string)
-			authPassword := dataAuth[auth_common.PASSWORD].(string)
-			// Authenticate AppUser
-			appUserData, err := authenticateAppUser(dbProps, authKey, authKeyValue, authPassword)
-			if err != nil {
-				return utils.Map{}, err
-			}
-
-			dataAuth[auth_common.USER_ID] = appUserData[platform_common.FLD_APP_USER_ID].(string)
-
-		} else {
-			// No UserType or Other UserTypes
-
+			// Default authKey is user_id
 			authKey := platform_common.FLD_SYS_USER_ID
-			if loginType, loginTypeOK := mapScopes[auth_common.LOGIN_TYPE]; loginTypeOK {
-				if loginType.(string) == auth_common.LOGIN_TYPE_PHONE {
-					authKey = platform_common.FLD_SYS_USER_PHONE
-				}
-				if loginType.(string) == auth_common.LOGIN_TYPE_EMAIL {
-					authKey = platform_common.FLD_SYS_USER_EMAILID
-				}
+
+			loginType, _ := utils.IsMemberExist(mapScopes, auth_common.LOGIN_TYPE)
+			if loginType == auth_common.LOGIN_TYPE_EMAIL {
+				authKey = platform_common.FLD_SYS_USER_EMAILID
+			} else if loginType == auth_common.LOGIN_TYPE_PHONE {
+				authKey = platform_common.FLD_SYS_USER_PHONE
 			}
 
 			authKeyValue := dataAuth[auth_common.USERNAME].(string)
 			authPassword := dataAuth[auth_common.PASSWORD].(string)
 
-			// Authenticate AppUser
+			// Authenticate SysUser
 			sysUserData, err := authenticateSysUser(dbProps, authKey, authKeyValue, authPassword)
 			if err != nil {
 				return utils.Map{}, err
 			}
 
 			dataAuth[platform_common.FLD_SYS_USER_ID] = sysUserData[platform_common.FLD_SYS_USER_ID].(string)
+		} else {
 
+			// ****** Validate the Password credentials with "appUser" Table ******
+
+			// Default authKey is user_id
+			authKey := platform_common.FLD_APP_USER_ID
+
+			loginType, _ := utils.IsMemberExist(mapScopes, auth_common.LOGIN_TYPE)
+			if loginType == auth_common.LOGIN_TYPE_EMAIL {
+				authKey = platform_common.FLD_APP_USER_EMAILID
+			} else if loginType == auth_common.LOGIN_TYPE_PHONE {
+				authKey = platform_common.FLD_APP_USER_PHONE
+			}
+
+			authKeyValue := dataAuth[auth_common.USERNAME].(string)
+			authPassword := dataAuth[auth_common.PASSWORD].(string)
+
+			// Authenticate AppUser
+			sysUserData, err := authenticateAppUser(dbProps, authKey, authKeyValue, authPassword)
+			if err != nil {
+				return utils.Map{}, err
+			}
+
+			dataAuth[platform_common.FLD_APP_USER_ID] = sysUserData[platform_common.FLD_APP_USER_ID].(string)
 		}
 	} /*else if dataAuth[GRANT_TYPE] == GRANT_TYPE_REFRESH {
 		dataAuth.RefreshToken = ctx.FormValue("refresh_token")
@@ -380,8 +323,8 @@ func Map2Claims(authData utils.Map) Claims {
 		authClaims.ClientScope = dataval.(string)
 	}
 
-	if dataval, dataok := authData[auth_common.USER_TYPE]; dataok {
-		authClaims.UserType = dataval.(string)
+	if dataval, dataok := authData[platform_common.FLD_BUSINESS_ID]; dataok {
+		authClaims.BusinessId = dataval.(string)
 	}
 
 	if dataval, dataok := authData[platform_common.FLD_APP_USER_ID]; dataok {

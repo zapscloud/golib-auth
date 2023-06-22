@@ -8,14 +8,14 @@ import (
 // Client Types
 const (
 	CLIENT_TYPE_APP      = "app"
-	CLIENT_TYPE_USER     = "user"
 	CLIENT_TYPE_BUSINESS = "business"
-	CLIENT_TYPE_PLATFORM = "platform"
 )
 
 // Client Scopes
 const (
-	CLIENT_SCOPE_PLATFORM = "platform"
+	CLIENT_SCOPE_PLATFORM   = "platform"
+	CLIENT_SCOPE_WEB_APP    = "webapp"
+	CLIENT_SCOPE_MOBILE_APP = "mobileapp"
 )
 
 // For Auth Verification
@@ -31,11 +31,6 @@ const (
 
 	USER_ID   = "user_id"
 	USER_TYPE = "user_type"
-
-	USER_TYPE_PLATFORM = "platform"
-	USER_TYPE_APP      = "app"
-	USER_TYPE_BUSINESS = "business"
-	USER_TYPE_CUSTOMER = "customer"
 
 	LOGIN_TYPE       = "login_type"
 	LOGIN_TYPE_EMAIL = "email"

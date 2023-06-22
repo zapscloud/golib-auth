@@ -93,33 +93,9 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	return nil
 }
 
-func authenticateSysClient(dbProps utils.Map, clientId string, clientSecret string) (utils.Map, error) {
+func authenticateAppClient(dbProps utils.Map, clientId string, clientSecret string, clientType string, clientScope string) (utils.Map, error) {
 	// Create Service Instance
-	sysClientService, err := platform_services.NewSysClientService(dbProps)
-	if err != nil {
-		log.Println("Client DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
-		return utils.Map{}, err
-	}
-	defer sysClientService.EndService()
-
-	log.Println("Auth key and secret ", clientId, clientSecret)
-
-	//filter := fmt.Sprintf(`{"%s":"%s","%s":"%s"}`, platform_common.FLD_CLIENT_ID, clientId, platform_common.FLD_CLIENT_SECRET, clientSecret)
-	//authrecord, err := appClientService.Find(filter)
-	sysClientData, err := sysClientService.Authenticate(clientId, clientSecret)
-	if err != nil {
-		log.Println("Auth DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
-		return utils.Map{}, err
-	}
-
-	return sysClientData, nil
-}
-
-func authenticateAppClient(dbProps utils.Map, clientId string, clientSecret string) (utils.Map, error) {
-	// Create Service Instance
-	appClientService, err := platform_services.NewAppClientService(dbProps)
+	appClientService, err := platform_services.NewClientsService(dbProps)
 	if err != nil {
 		log.Println("Client DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
@@ -127,11 +103,9 @@ func authenticateAppClient(dbProps utils.Map, clientId string, clientSecret stri
 	}
 	defer appClientService.EndService()
 
-	log.Println("Auth key and secret ", clientId, clientSecret)
+	log.Println("authenticateAppClient ", clientId, clientSecret, clientType, clientScope)
 
-	//filter := fmt.Sprintf(`{"%s":"%s","%s":"%s"}`, platform_common.FLD_CLIENT_ID, clientId, platform_common.FLD_CLIENT_SECRET, clientSecret)
-	//authrecord, err := appClientService.Find(filter)
-	appClientData, err := appClientService.Authenticate(clientId, clientSecret)
+	appClientData, err := appClientService.Authenticate(clientId, clientSecret, clientType, clientScope)
 	if err != nil {
 		log.Println("Auth DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
