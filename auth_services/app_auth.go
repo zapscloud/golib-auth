@@ -228,8 +228,8 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		return nil, err
 	}
 
-	// Authenticate with AppClient tables
-	clientData, err := authenticateAppClient(dbProps, clientId, clientSecret, clientType, clientScope)
+	// Authenticate with Clients tables
+	clientData, err := authenticateClient(dbProps, clientId, clientSecret, clientType, clientScope)
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +252,15 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 				return nil, err
 			}
 		}
+
+		// Validate BusinessId is exist
+		if !utils.IsEmpty(businessId) {
+			_, err = authenticateBussiness(dbProps, businessId)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		// Assign BusinessId in AuthData
 		dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 

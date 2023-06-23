@@ -93,26 +93,26 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	return nil
 }
 
-func authenticateAppClient(dbProps utils.Map, clientId string, clientSecret string, clientType string, clientScope string) (utils.Map, error) {
+func authenticateClient(dbProps utils.Map, clientId string, clientSecret string, clientType string, clientScope string) (utils.Map, error) {
 	// Create Service Instance
-	appClientService, err := platform_services.NewClientsService(dbProps)
+	clientService, err := platform_services.NewClientsService(dbProps)
 	if err != nil {
 		log.Println("Client DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
 		return utils.Map{}, err
 	}
-	defer appClientService.EndService()
+	defer clientService.EndService()
 
 	log.Println("authenticateAppClient ", clientId, clientSecret, clientType, clientScope)
 
-	appClientData, err := appClientService.Authenticate(clientId, clientSecret, clientType, clientScope)
+	clientData, err := clientService.Authenticate(clientId, clientSecret, clientType, clientScope)
 	if err != nil {
 		log.Println("Auth DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
 		return utils.Map{}, err
 	}
 
-	return appClientData, nil
+	return clientData, nil
 }
 
 func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
@@ -124,7 +124,7 @@ func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 	defer serviceSysUser.EndService()
 
-	log.Println("Business::Auth:: Parameter Value ", auth_key, auth_key_value)
+	log.Println("authenticateSysUser::Auth:: Parameter Value ", auth_key, auth_key_value)
 	sysUserData, err := serviceSysUser.Authenticate(auth_key, auth_key_value, auth_password)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
@@ -145,7 +145,7 @@ func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 	defer serviceAppUser.EndService()
 
-	log.Println("Business::Auth:: Parameter Value ", auth_key, auth_key_value)
+	log.Println("authenticateAppUser::Auth Parameter Value ", auth_key, auth_key_value)
 	appUserData, err := serviceAppUser.Authenticate(auth_key, auth_key_value, auth_password)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
@@ -153,4 +153,24 @@ func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 
 	return appUserData, nil
+}
+
+func authenticateBussiness(dbProps utils.Map, businessId string) (utils.Map, error) {
+	// User Validation
+	bizService, err := platform_services.NewBusinessService(dbProps)
+
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
+		return nil, err
+	}
+	defer bizService.EndService()
+
+	log.Println("authenticateBussiness::Auth:: Parameter Value ", businessId)
+	bizData, err := bizService.Get(businessId)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid BusinessId", ErrorDetail: "No such BusinessId found"}
+		return nil, err
+	}
+
+	return bizData, nil
 }
