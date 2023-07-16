@@ -84,7 +84,7 @@ func GetBasicAuth(ctx *fiber.Ctx) (string, string, error) {
 
 }
 
-func GetScope(dataAuth utils.Map) utils.Map {
+func ParseScope(dataAuth utils.Map) utils.Map {
 	mapScopes := utils.Map{}
 	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && scopeValue.(string) != "" {
 		mapScopes = parseScope(scopeValue.(string))
@@ -214,7 +214,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
 
 	// Get Scope values if anything passed
-	mapScopes := GetScope(dataAuth)
+	mapScopes := ParseScope(dataAuth)
 
 	switch grantType {
 	//
@@ -294,7 +294,7 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, 
 	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
 
 	// Get Scope values if anything passed
-	mapScopes := GetScope(dataAuth)
+	mapScopes := ParseScope(dataAuth)
 
 	// Obtain ClientType value
 	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
