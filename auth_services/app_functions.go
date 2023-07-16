@@ -94,10 +94,25 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	return nil
 }
 
+func parseScope(scope_value string) utils.Map {
+
+	mapScopes := utils.Map{}
+
+	scopeStrings := strings.Fields(scope_value)
+	for _, scopeString := range scopeStrings {
+		scopeValue := strings.Split(scopeString, ":")
+		if len(scopeValue) > 1 {
+			mapScopes[scopeValue[0]] = scopeValue[1]
+		}
+	}
+
+	return mapScopes
+}
+
 func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
 	// Get Scope values if anything passed
-	mapScopes := getScope(dataAuth)
+	mapScopes := GetScope(dataAuth)
 
 	// Default authKey is user_id
 	authKey := platform_common.FLD_SYS_USER_ID
@@ -132,7 +147,7 @@ func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
 	// Get Scope values if anything passed
-	mapScopes := getScope(dataAuth)
+	mapScopes := GetScope(dataAuth)
 
 	// Default authKey is user_id
 	authKey := platform_common.FLD_APP_USER_ID

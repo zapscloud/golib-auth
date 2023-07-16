@@ -84,27 +84,12 @@ func GetBasicAuth(ctx *fiber.Ctx) (string, string, error) {
 
 }
 
-func getScope(dataAuth utils.Map) utils.Map {
+func GetScope(dataAuth utils.Map) utils.Map {
 	mapScopes := utils.Map{}
 	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && scopeValue.(string) != "" {
 		mapScopes = parseScope(scopeValue.(string))
 	}
 	log.Println("Scopes ", mapScopes)
-
-	return mapScopes
-}
-
-func parseScope(scope_value string) utils.Map {
-
-	mapScopes := utils.Map{}
-
-	scopeStrings := strings.Fields(scope_value)
-	for _, scopeString := range scopeStrings {
-		scopeValue := strings.Split(scopeString, ":")
-		if len(scopeValue) > 1 {
-			mapScopes[scopeValue[0]] = scopeValue[1]
-		}
-	}
 
 	return mapScopes
 }
@@ -229,7 +214,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
 
 	// Get Scope values if anything passed
-	mapScopes := getScope(dataAuth)
+	mapScopes := GetScope(dataAuth)
 
 	switch grantType {
 	//
@@ -309,7 +294,7 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, 
 	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
 
 	// Get Scope values if anything passed
-	mapScopes := getScope(dataAuth)
+	mapScopes := GetScope(dataAuth)
 
 	// Obtain ClientType value
 	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
