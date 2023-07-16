@@ -247,7 +247,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 		// Validate BusinessId is exist
 		if !utils.IsEmpty(businessId) {
-			_, err = authenticateBussiness(dbProps, businessId)
+			_, err = IsBusinessExist(dbProps, businessId)
 			if err != nil {
 				return nil, err
 			}
@@ -326,6 +326,26 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, 
 	}
 
 	return clientType, clientScope, clientData, err
+}
+
+func IsBusinessExist(dbProps utils.Map, businessId string) (utils.Map, error) {
+	// User Validation
+	bizService, err := platform_services.NewBusinessService(dbProps)
+
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
+		return nil, err
+	}
+	defer bizService.EndService()
+
+	log.Println("authenticateBussiness::Auth:: Parameter Value ", businessId)
+	bizData, err := bizService.Get(businessId)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid BusinessId", ErrorDetail: "No such BusinessId found"}
+		return nil, err
+	}
+
+	return bizData, nil
 }
 
 func Map2Claims(authData utils.Map) Claims {

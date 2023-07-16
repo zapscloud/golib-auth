@@ -180,23 +180,3 @@ func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 
 	return appUserData, nil
 }
-
-func authenticateBussiness(dbProps utils.Map, businessId string) (utils.Map, error) {
-	// User Validation
-	bizService, err := platform_services.NewBusinessService(dbProps)
-
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
-		return nil, err
-	}
-	defer bizService.EndService()
-
-	log.Println("authenticateBussiness::Auth:: Parameter Value ", businessId)
-	bizData, err := bizService.Get(businessId)
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid BusinessId", ErrorDetail: "No such BusinessId found"}
-		return nil, err
-	}
-
-	return bizData, nil
-}
