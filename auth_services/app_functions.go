@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
+	"github.com/zapscloud/golib-platform/platform_common"
 	"github.com/zapscloud/golib-platform/platform_services"
 	"github.com/zapscloud/golib-utils/utils"
 )
@@ -93,29 +94,23 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	return nil
 }
 
-func authenticateClient(dbProps utils.Map, clientId string, clientSecret string, clientType string, clientScope string) (utils.Map, error) {
-	// Create Service Instance
-	clientService, err := platform_services.NewClientsService(dbProps)
-	if err != nil {
-		log.Println("Client DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
-		return utils.Map{}, err
-	}
-	defer clientService.EndService()
+func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
-	log.Println("authenticateAppClient ", clientId, clientSecret, clientType, clientScope)
+	// Get Scope values if anything passed
+	mapScopes := getScope(dataAuth)
 
-	clientData, err := clientService.Authenticate(clientId, clientSecret, clientType, clientScope)
-	if err != nil {
-		log.Println("Auth DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
-		return utils.Map{}, err
+	// Default authKey is user_id
+	authKey := platform_common.FLD_SYS_USER_ID
+
+	loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
+	if loginType == auth_common.LOGIN_TYPE_EMAIL {
+		authKey = platform_common.FLD_SYS_USER_EMAILID
+	} else if loginType == auth_common.LOGIN_TYPE_PHONE {
+		authKey = platform_common.FLD_SYS_USER_PHONE
 	}
 
-	return clientData, nil
-}
-
-func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
+	authKeyValue := dataAuth[auth_common.USERNAME].(string)
+	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
 	serviceSysUser, err := platform_services.NewSysUserService(dbProps)
 	if err != nil {
@@ -124,8 +119,8 @@ func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 	defer serviceSysUser.EndService()
 
-	log.Println("authenticateSysUser::Auth:: Parameter Value ", auth_key, auth_key_value)
-	sysUserData, err := serviceSysUser.Authenticate(auth_key, auth_key_value, auth_password)
+	log.Println("authenticateSysUser::Auth:: Parameter Value ", authKey, authKeyValue)
+	sysUserData, err := serviceSysUser.Authenticate(authKey, authKeyValue, authPassword)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
 		return utils.Map{}, err
@@ -134,7 +129,23 @@ func authenticateSysUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	return sysUserData, nil
 }
 
-func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value string, auth_password string) (utils.Map, error) {
+func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
+
+	// Get Scope values if anything passed
+	mapScopes := getScope(dataAuth)
+
+	// Default authKey is user_id
+	authKey := platform_common.FLD_APP_USER_ID
+
+	loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
+	if loginType == auth_common.LOGIN_TYPE_EMAIL {
+		authKey = platform_common.FLD_APP_USER_EMAILID
+	} else if loginType == auth_common.LOGIN_TYPE_PHONE {
+		authKey = platform_common.FLD_APP_USER_PHONE
+	}
+
+	authKeyValue := dataAuth[auth_common.USERNAME].(string)
+	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
 	// User Validation
 	serviceAppUser, err := platform_services.NewAppUserService(dbProps)
@@ -145,8 +156,8 @@ func authenticateAppUser(dbProps utils.Map, auth_key string, auth_key_value stri
 	}
 	defer serviceAppUser.EndService()
 
-	log.Println("authenticateAppUser::Auth Parameter Value ", auth_key, auth_key_value)
-	appUserData, err := serviceAppUser.Authenticate(auth_key, auth_key_value, auth_password)
+	log.Println("authenticateAppUser::Auth Parameter Value ", authKey, authKeyValue)
+	appUserData, err := serviceAppUser.Authenticate(authKey, authKeyValue, authPassword)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Status Unauthorized", ErrorDetail: "Authentication Failure"}
 		return utils.Map{}, err

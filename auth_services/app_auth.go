@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
 	"github.com/zapscloud/golib-platform/platform_common"
+	"github.com/zapscloud/golib-platform/platform_services"
 	"github.com/zapscloud/golib-utils/utils"
 )
 
@@ -212,45 +213,51 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 	log.Printf("ValidateAppAuth %v", dataAuth)
 
-	clientId := dataAuth[auth_common.CLIENT_ID].(string)
-	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
-
-	// Get Scope values if anything passed
-	mapScopes := getScope(dataAuth)
-	// Obtain ClientType value
-	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
-	if err != nil {
-		return nil, err
-	}
-	// obtain ClientScope value
-	clientScope, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_SCOPE)
-	if err != nil {
-		return nil, err
-	}
-
 	// Authenticate with Clients tables
-	clientData, err := authenticateClient(dbProps, clientId, clientSecret, clientType, clientScope)
+	clientType, clientScope, clientData, err := AuthenticateClient(dbProps, dataAuth)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Println("Auth Client Record ", clientData, err)
 
+	// Update Client Data in AuthData
 	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientData[platform_common.FLD_CLIENT_TYPE].(string)
 	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientData[platform_common.FLD_CLIENT_SCOPE].(string)
 
-	if dataAuth[auth_common.GRANT_TYPE] == auth_common.GRANT_TYPE_PASSWORD {
+	// Get the GrantType
+	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
 
+	// Get Scope values if anything passed
+	mapScopes := getScope(dataAuth)
+
+	switch grantType {
+	//
+	// ============[ Grant_Type: Client Credentials ] ========================================
+	case auth_common.GRANT_TYPE_CLIENT_CREDENTIALS:
+		/* All validation done already, nothing todo further so just return the result. */
+
+	//
+	// ============[ Grant_Type: Password Credentials ] ======================================
+	case auth_common.GRANT_TYPE_PASSWORD:
+
+		var businessId string = ""
 		// Obtain BusinessId value
-		businessId, err := utils.GetMemberDataStr(mapScopes, platform_common.FLD_BUSINESS_ID)
-		if err != nil {
-			if clientType == auth_common.CLIENT_TYPE_APP && clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
-				businessId = "" // Ignore the businessId
-			} else if clientType == auth_common.CLIENT_TYPE_BUSINESS {
-				businessId = clientScope // Take clientScope as businessId
+
+		switch clientType {
+		case auth_common.CLIENT_TYPE_APP:
+			if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
+				// BusinessId not needed so skip it
 			} else {
-				return nil, err
+				// For all other cases like WebApp, MobileApp and etc
+				businessId, err = utils.GetMemberDataStr(mapScopes, platform_common.FLD_BUSINESS_ID)
+				if err != nil {
+					return nil, err
+				}
 			}
+		case auth_common.CLIENT_TYPE_BUSINESS:
+			// ClientScope will be considered as BusinessId
+			businessId = clientScope // Take clientScope as businessId
 		}
 
 		// Validate BusinessId is exist
@@ -268,57 +275,72 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
 			// ****** Validate the Password credentials with "sysUser" Table ******
 
-			// Default authKey is user_id
-			authKey := platform_common.FLD_SYS_USER_ID
-
-			loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
-			if loginType == auth_common.LOGIN_TYPE_EMAIL {
-				authKey = platform_common.FLD_SYS_USER_EMAILID
-			} else if loginType == auth_common.LOGIN_TYPE_PHONE {
-				authKey = platform_common.FLD_SYS_USER_PHONE
-			}
-
-			authKeyValue := dataAuth[auth_common.USERNAME].(string)
-			authPassword := dataAuth[auth_common.PASSWORD].(string)
-
 			// Authenticate SysUser
-			sysUserData, err := authenticateSysUser(dbProps, authKey, authKeyValue, authPassword)
+			sysUserData, err := authenticateSysUser(dbProps, dataAuth)
 			if err != nil {
 				return utils.Map{}, err
 			}
 
 			dataAuth[platform_common.FLD_SYS_USER_ID] = sysUserData[platform_common.FLD_SYS_USER_ID].(string)
 		} else {
-
 			// ****** Validate the Password credentials with "appUser" Table ******
 
-			// Default authKey is user_id
-			authKey := platform_common.FLD_APP_USER_ID
-
-			loginType, _ := utils.GetMemberDataStr(mapScopes, auth_common.LOGIN_TYPE)
-			if loginType == auth_common.LOGIN_TYPE_EMAIL {
-				authKey = platform_common.FLD_APP_USER_EMAILID
-			} else if loginType == auth_common.LOGIN_TYPE_PHONE {
-				authKey = platform_common.FLD_APP_USER_PHONE
-			}
-
-			authKeyValue := dataAuth[auth_common.USERNAME].(string)
-			authPassword := dataAuth[auth_common.PASSWORD].(string)
-
 			// Authenticate AppUser
-			sysUserData, err := authenticateAppUser(dbProps, authKey, authKeyValue, authPassword)
+			sysUserData, err := authenticateAppUser(dbProps, dataAuth)
 			if err != nil {
 				return utils.Map{}, err
 			}
 
 			dataAuth[platform_common.FLD_APP_USER_ID] = sysUserData[platform_common.FLD_APP_USER_ID].(string)
 		}
-	} /*else if dataAuth[GRANT_TYPE] == GRANT_TYPE_REFRESH {
-		dataAuth.RefreshToken = ctx.FormValue("refresh_token")
-	}*/
+	//
+	// ============[ Grant_Type: REFRESH ] ========================================
+	case auth_common.GRANT_TYPE_REFRESH:
+		/* Need to Implement Refersh Token */
+		//dataAuth.RefreshToken = ctx.FormValue("refresh_token")
+	}
 
 	log.Printf("Auth Values %v", dataAuth)
 	return dataAuth, nil
+}
+
+func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, utils.Map, error) {
+	clientId := dataAuth[auth_common.CLIENT_ID].(string)
+	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
+
+	// Get Scope values if anything passed
+	mapScopes := getScope(dataAuth)
+
+	// Obtain ClientType value
+	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
+	if err != nil {
+		return "", "", nil, err
+	}
+	// obtain ClientScope value
+	clientScope, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_SCOPE)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	// Create Service Instance
+	clientService, err := platform_services.NewClientsService(dbProps)
+	if err != nil {
+		log.Println("Client DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
+		return "", "", nil, err
+	}
+	defer clientService.EndService()
+
+	log.Println("authenticateAppClient ", clientId, clientSecret, clientType, clientScope)
+
+	clientData, err := clientService.Authenticate(clientId, clientSecret, clientType, clientScope)
+	if err != nil {
+		log.Println("Auth DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
+		return "", "", nil, err
+	}
+
+	return clientType, clientScope, clientData, err
 }
 
 func Map2Claims(authData utils.Map) Claims {
