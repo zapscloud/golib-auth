@@ -7,8 +7,8 @@ import (
 
 // Client Types
 const (
-	CLIENT_TYPE_APP      = "app"
-	CLIENT_TYPE_BUSINESS = "business"
+	CLIENT_TYPE_COMMON_APP   = "common_app"
+	CLIENT_TYPE_BUSINESS_APP = "business_app"
 )
 
 // Client Scopes

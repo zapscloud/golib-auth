@@ -230,7 +230,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		// Obtain BusinessId value
 
 		switch clientType {
-		case auth_common.CLIENT_TYPE_APP:
+		case auth_common.CLIENT_TYPE_COMMON_APP:
 			if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
 				// BusinessId not needed so skip it
 			} else {
@@ -240,7 +240,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 					return nil, err
 				}
 			}
-		case auth_common.CLIENT_TYPE_BUSINESS:
+		case auth_common.CLIENT_TYPE_BUSINESS_APP:
 			// ClientScope will be considered as BusinessId
 			businessId = clientScope // Take clientScope as businessId
 		}
