@@ -26,8 +26,10 @@ const (
 	GRANT_TYPE    = "grant_type"
 	CLIENT_ID     = "client_id"
 	CLIENT_SECRET = "client_secret"
-	SCOPE         = "scope"
-	REFRESH_TOKEN = "refresh_token"
+
+	SCOPE             = "scope"
+	SCOPE_BUSINESS_ID = "business_id"
+	REFRESH_TOKEN     = "refresh_token"
 
 	USER_ID   = "user_id"
 	USER_TYPE = "user_type"
@@ -48,8 +50,6 @@ const (
 	ACCESS_TOKEN = "access_token"
 	EXPIRES_AT   = "expires_at"
 	ISSUED_AT    = "issued_at"
-
-	RETURN_TOKEN_TYPE = "Bearer"
 )
 
 func GetJwtKey() string {

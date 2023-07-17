@@ -86,7 +86,7 @@ func GetBasicAuth(ctx *fiber.Ctx) (string, string, error) {
 
 func ParseScope(dataAuth utils.Map) utils.Map {
 	mapScopes := utils.Map{}
-	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && scopeValue.(string) != "" {
+	if scopeValue, scopeOk := dataAuth[auth_common.SCOPE]; scopeOk && !utils.IsEmpty(scopeValue.(string)) {
 		mapScopes = parseScope(scopeValue.(string))
 	}
 	log.Println("Scopes ", mapScopes)
@@ -199,19 +199,15 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	log.Printf("ValidateAppAuth %v", dataAuth)
 
 	// Authenticate with Clients tables
-	clientType, clientScope, clientData, err := AuthenticateClient(dbProps, dataAuth)
+	clientData, err := AuthenticateClient(dbProps, dataAuth)
 	if err != nil {
 		return nil, err
 	}
-
 	log.Println("Auth Client Record ", clientData, err)
 
-	// Update Client Data in AuthData
-	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientData[platform_common.FLD_CLIENT_TYPE].(string)
-	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientData[platform_common.FLD_CLIENT_SCOPE].(string)
-
-	// Get the GrantType
-	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
+	// Get clientType and clientScope from the clientData
+	clientType := clientData[platform_common.FLD_CLIENT_TYPE].(string)
+	clientScope := clientData[platform_common.FLD_CLIENT_SCOPE].(string)
 
 	// Get Scope values if anything passed
 	mapScopes := ParseScope(dataAuth)
@@ -225,7 +221,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 			// BusinessId not needed so skip it
 		} else {
 			// For all other cases like WebApp, MobileApp and etc
-			businessId, err = utils.GetMemberDataStr(mapScopes, platform_common.FLD_BUSINESS_ID)
+			businessId, err = utils.GetMemberDataStr(mapScopes, auth_common.SCOPE_BUSINESS_ID)
 			if err != nil {
 				return nil, err
 			}
@@ -241,9 +237,16 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		if err != nil {
 			return nil, err
 		}
+
+		// Assign BusinessId in AuthData
+		dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 	}
-	// Assign BusinessId in AuthData
-	dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
+	// Update Client Data in AuthData
+	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientType
+	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientScope
+
+	// Get the GrantType
+	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
 
 	switch grantType {
 	//
@@ -288,22 +291,16 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	return dataAuth, nil
 }
 
-func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, utils.Map, error) {
-	clientId := dataAuth[auth_common.CLIENT_ID].(string)
-	clientSecret := dataAuth[auth_common.CLIENT_SECRET].(string)
+func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
-	// Get Scope values if anything passed
-	mapScopes := ParseScope(dataAuth)
-
-	// Obtain ClientType value
-	clientType, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_TYPE)
+	// Get clientId and clientSecret
+	clientId, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_ID)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
-	// obtain ClientScope value
-	clientScope, err := utils.GetMemberDataStr(mapScopes, auth_common.CLIENT_SCOPE)
+	clientSecret, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_SECRET)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
 	// Create Service Instance
@@ -311,20 +308,20 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (string, string, 
 	if err != nil {
 		log.Println("Client DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
-		return "", "", nil, err
+		return nil, err
 	}
 	defer clientService.EndService()
 
-	log.Println("authenticateAppClient ", clientId, clientSecret, clientType, clientScope)
+	log.Println("authenticateAppClient ", clientId, clientSecret)
 
-	clientData, err := clientService.Authenticate(clientId, clientSecret, clientType, clientScope)
+	clientData, err := clientService.Authenticate(clientId, clientSecret)
 	if err != nil {
 		log.Println("Auth DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
-		return "", "", nil, err
+		return nil, err
 	}
 
-	return clientType, clientScope, clientData, err
+	return clientData, err
 }
 
 func IsBusinessExist(dbProps utils.Map, businessId string) (utils.Map, error) {
