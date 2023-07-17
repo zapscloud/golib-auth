@@ -268,17 +268,18 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 				return utils.Map{}, err
 			}
 
+			// Update SysUserId to AuthData
 			dataAuth[platform_common.FLD_SYS_USER_ID] = sysUserData[platform_common.FLD_SYS_USER_ID].(string)
 		} else {
 			// ****** Validate the Password credentials with "appUser" Table ******
 
 			// Authenticate AppUser
-			sysUserData, err := authenticateAppUser(dbProps, dataAuth)
+			appUserData, err := authenticateAppUser(dbProps, dataAuth)
 			if err != nil {
 				return utils.Map{}, err
 			}
-
-			dataAuth[platform_common.FLD_APP_USER_ID] = sysUserData[platform_common.FLD_APP_USER_ID].(string)
+			// Update AppUserId to AuthData
+			dataAuth[platform_common.FLD_APP_USER_ID] = appUserData[platform_common.FLD_APP_USER_ID].(string)
 		}
 	//
 	// ============[ Grant_Type: REFRESH ] ========================================
