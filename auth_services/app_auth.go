@@ -241,9 +241,6 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		// Assign BusinessId in AuthData
 		dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
 	}
-	// Update Client Data in AuthData
-	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientType
-	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientScope
 
 	// Get the GrantType
 	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
@@ -287,6 +284,10 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 		/* Need to Implement Refersh Token */
 		//dataAuth.RefreshToken = ctx.FormValue("refresh_token")
 	}
+
+	// Update Client Data in AuthData
+	dataAuth[platform_common.FLD_CLIENT_TYPE] = clientType
+	dataAuth[platform_common.FLD_CLIENT_SCOPE] = clientScope
 
 	log.Printf("Auth Values %v", dataAuth)
 	return dataAuth, nil
