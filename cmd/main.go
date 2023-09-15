@@ -1,11 +1,9 @@
 package main
 
-import (
-	"fmt"
-)
+import "log"
 
 func main() {
 
-	fmt.Println("Auth Validate ")
+	log.Println("Auth Validate ")
 
 }

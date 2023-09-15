@@ -2,7 +2,6 @@ package auth_services
 
 import (
 	"encoding/base64"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -39,10 +38,10 @@ func AuthValidate(ctx *fiber.Ctx) (Claims, error) { // for validation process
 	claims := Claims{}
 	err := ValidateBearerAuth(ctx, &claims)
 	if err != nil {
-		fmt.Println("err for final ", err)
+		log.Println("err for final ", err)
 		return claims, err
 	}
-	fmt.Println("auth", claims)
+	log.Println("auth", claims)
 
 	return claims, nil
 }
