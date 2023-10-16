@@ -6,8 +6,8 @@ require (
 	github.com/gofiber/fiber/v2 v2.36.0
 	github.com/gofiber/utils v1.0.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/zapscloud/golib-platform v1.0.1-0.20231006124812-4c90a6ccdbb1
-	github.com/zapscloud/golib-utils v1.0.1-0.20230830110037-ce8b7333310f
+	github.com/zapscloud/golib-platform v1.0.1-0.20231016122131-18d78ba724b1
+	github.com/zapscloud/golib-utils v1.0.1-0.20231013125100-bb65f5737443
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.3 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zapscloud/golib v1.0.4 // indirect
-	github.com/zapscloud/golib-dbutils v1.1.1-0.20231006124328-1a3949fdf394 // indirect
+	github.com/zapscloud/golib-dbutils v1.1.1-0.20231016071702-b6e244391427 // indirect
 	go.mongodb.org/mongo-driver v1.11.7 // indirect
 	golang.org/x/crypto v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

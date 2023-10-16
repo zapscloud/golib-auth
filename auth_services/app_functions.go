@@ -23,7 +23,7 @@ func getBearerAuth(ctx *fiber.Ctx) (string, error) {
 	// Get authorization header
 	authstring := ctx.Get(fiber.HeaderAuthorization)
 
-	log.Println("GetBearerAuth Token:", authstring)
+	//log.Println("GetBearerAuth Token:", authstring)
 
 	// Check if the header contains content besides "bearer".
 	if len(authstring) <= 7 || strings.ToLower(authstring[:6]) != auth_common.TOKEN_BEARER {
@@ -45,7 +45,7 @@ func getBearerAuth(ctx *fiber.Ctx) (string, error) {
 		return "", err
 	}
 
-	log.Println("Auth Token ", authtoken)
+	//log.Println("Auth Token ", authtoken)
 	return authtoken, nil
 
 }
@@ -53,11 +53,11 @@ func getBearerAuth(ctx *fiber.Ctx) (string, error) {
 // validateBearerAuth -- Authenticate Application Request
 func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 
-	log.Printf("ValidateBearerAuth %v", ctx.Request().Header.String())
+	//log.Printf("ValidateBearerAuth %v", ctx.Request().Header.String())
 
 	// verify auth credentials
 	authtoken, err := getBearerAuth(ctx)
-	log.Println("Bearer Auth Token ", authtoken, err)
+	//log.Println("Bearer Auth Token ", authtoken, err)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
 		return err
@@ -70,7 +70,7 @@ func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
 	jwtKey := auth_common.GetJwtKey()
 
 	tkn, err := jwt.ParseWithClaims(authtoken, claims, func(token *jwt.Token) (interface{}, error) {
-		log.Println("Token value ", token)
+		//log.Println("Token value ", token)
 		jwtByte := []byte(jwtKey)
 		return jwtByte, nil
 	})

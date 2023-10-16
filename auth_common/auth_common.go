@@ -1,7 +1,6 @@
 package auth_common
 
 import (
-	"log"
 	"os"
 )
 
@@ -54,6 +53,6 @@ const (
 
 func GetJwtKey() string {
 	jwtKey := os.Getenv("APP_JWT_KEY")
-	log.Println("AppCommon::GetJwdKey ", jwtKey)
+	//log.Println("AppCommon::GetJwdKey ", jwtKey)
 	return jwtKey
 }
