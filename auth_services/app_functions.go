@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
-	"github.com/zapscloud/golib-platform/platform_common"
-	"github.com/zapscloud/golib-platform/platform_services"
+	"github.com/zapscloud/golib-platform-repository/platform_common"
+	"github.com/zapscloud/golib-platform-service/platform_service"
 	"github.com/zapscloud/golib-utils/utils"
 )
 
@@ -127,7 +127,7 @@ func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 	authKeyValue := strings.ToLower(dataAuth[auth_common.USERNAME].(string))
 	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
-	serviceSysUser, err := platform_services.NewSysUserService(dbProps)
+	serviceSysUser, err := platform_service.NewSysUserService(dbProps)
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
 		return utils.Map{}, err
@@ -163,7 +163,7 @@ func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
 	// User Validation
-	serviceAppUser, err := platform_services.NewAppUserService(dbProps)
+	serviceAppUser, err := platform_service.NewAppUserService(dbProps)
 
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}

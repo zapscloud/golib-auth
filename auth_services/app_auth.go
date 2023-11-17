@@ -10,8 +10,8 @@ import (
 	fiber_utils "github.com/gofiber/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
-	"github.com/zapscloud/golib-platform/platform_common"
-	"github.com/zapscloud/golib-platform/platform_services"
+	"github.com/zapscloud/golib-platform-repository/platform_common"
+	"github.com/zapscloud/golib-platform-service/platform_service"
 	"github.com/zapscloud/golib-utils/utils"
 )
 
@@ -305,7 +305,7 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error
 	}
 
 	// Create Service Instance
-	clientService, err := platform_services.NewClientsService(dbProps)
+	clientService, err := platform_service.NewClientsService(dbProps)
 	if err != nil {
 		log.Println("Client DB Error ", err)
 		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
@@ -327,7 +327,7 @@ func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error
 
 func IsBusinessExist(dbProps utils.Map, businessId string) (utils.Map, error) {
 	// User Validation
-	bizService, err := platform_services.NewBusinessService(dbProps)
+	bizService, err := platform_service.NewBusinessService(dbProps)
 
 	if err != nil {
 		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
