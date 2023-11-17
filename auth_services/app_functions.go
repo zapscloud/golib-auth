@@ -124,7 +124,7 @@ func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 		authKey = platform_common.FLD_SYS_USER_PHONE
 	}
 
-	authKeyValue := dataAuth[auth_common.USERNAME].(string)
+	authKeyValue := strings.ToLower(dataAuth[auth_common.USERNAME].(string))
 	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
 	serviceSysUser, err := platform_services.NewSysUserService(dbProps)
@@ -159,7 +159,7 @@ func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 		authKey = platform_common.FLD_APP_USER_PHONE
 	}
 
-	authKeyValue := dataAuth[auth_common.USERNAME].(string)
+	authKeyValue := strings.ToLower(dataAuth[auth_common.USERNAME].(string))
 	authPassword := dataAuth[auth_common.PASSWORD].(string)
 
 	// User Validation
