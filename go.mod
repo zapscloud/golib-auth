@@ -6,8 +6,8 @@ require (
 	github.com/gofiber/fiber/v2 v2.36.0
 	github.com/gofiber/utils v1.0.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/zapscloud/golib-platform-repository v0.0.0-20231104045312-797a30003891
-	github.com/zapscloud/golib-platform-service v0.0.0-20231104052444-07da4e75a984
+	github.com/zapscloud/golib-platform-repository v0.0.0-20231120090652-179302638227
+	github.com/zapscloud/golib-platform-service v0.0.0-20231120090833-685fee5bff33
 	github.com/zapscloud/golib-utils v1.0.1-0.20231117081529-93ad4f30cea1
 )
 

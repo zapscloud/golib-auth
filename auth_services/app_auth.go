@@ -11,7 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
 	"github.com/zapscloud/golib-platform-repository/platform_common"
-	"github.com/zapscloud/golib-platform-service/platform_service"
 	"github.com/zapscloud/golib-utils/utils"
 )
 
@@ -198,7 +197,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	log.Printf("ValidateAppAuth %v", dataAuth)
 
 	// Authenticate with Clients tables
-	clientData, err := AuthenticateClient(dbProps, dataAuth)
+	clientData, err := authenticateClient(dbProps, dataAuth)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +231,7 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 	// Validate BusinessId is exist
 	if !utils.IsEmpty(businessId) {
-		_, err = IsBusinessExist(dbProps, businessId)
+		_, err = isBusinessExist(dbProps, businessId)
 		if err != nil {
 			return nil, err
 		}
@@ -264,8 +263,10 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 				return utils.Map{}, err
 			}
 
+			sysUserId, _ := utils.GetMemberDataStr(sysUserData, platform_common.FLD_SYS_USER_ID)
+
 			// Update SysUserId to AuthData
-			dataAuth[platform_common.FLD_SYS_USER_ID] = sysUserData[platform_common.FLD_SYS_USER_ID].(string)
+			dataAuth[platform_common.FLD_SYS_USER_ID] = sysUserId
 		} else {
 			// ****** Validate the Password credentials with "appUser" Table ******
 
@@ -274,8 +275,16 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 			if err != nil {
 				return utils.Map{}, err
 			}
+
+			appUserId, _ := utils.GetMemberDataStr(appUserData, platform_common.FLD_APP_USER_ID)
+			// Verify whether this user registered in the businessId which received
+			_, err = validateUserRegBusiness(dbProps, businessId, appUserId)
+			if err != nil {
+				return utils.Map{}, err
+			}
+
 			// Update AppUserId to AuthData
-			dataAuth[platform_common.FLD_APP_USER_ID] = appUserData[platform_common.FLD_APP_USER_ID].(string)
+			dataAuth[platform_common.FLD_APP_USER_ID] = appUserId
 		}
 	//
 	// ============[ Grant_Type: REFRESH ] ========================================
@@ -290,59 +299,6 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 
 	log.Printf("Auth Values %v", dataAuth)
 	return dataAuth, nil
-}
-
-func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
-
-	// Get clientId and clientSecret
-	clientId, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_ID)
-	if err != nil {
-		return nil, err
-	}
-	clientSecret, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_SECRET)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create Service Instance
-	clientService, err := platform_service.NewClientsService(dbProps)
-	if err != nil {
-		log.Println("Client DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
-		return nil, err
-	}
-	defer clientService.EndService()
-
-	log.Println("authenticateAppClient ", clientId, clientSecret)
-
-	clientData, err := clientService.Authenticate(clientId, clientSecret)
-	if err != nil {
-		log.Println("Auth DB Error ", err)
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
-		return nil, err
-	}
-
-	return clientData, err
-}
-
-func IsBusinessExist(dbProps utils.Map, businessId string) (utils.Map, error) {
-	// User Validation
-	bizService, err := platform_service.NewBusinessService(dbProps)
-
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
-		return nil, err
-	}
-	defer bizService.EndService()
-
-	log.Println("authenticateBussiness::Auth:: Parameter Value ", businessId)
-	bizData, err := bizService.Get(businessId)
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid BusinessId", ErrorDetail: "No such BusinessId found"}
-		return nil, err
-	}
-
-	return bizData, nil
 }
 
 func Map2Claims(authData utils.Map) Claims {

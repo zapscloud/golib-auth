@@ -109,6 +109,39 @@ func parseScope(scope_value string) utils.Map {
 	return mapScopes
 }
 
+func authenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
+
+	// Get clientId and clientSecret
+	clientId, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_ID)
+	if err != nil {
+		return nil, err
+	}
+	clientSecret, err := utils.GetMemberDataStr(dataAuth, auth_common.CLIENT_SECRET)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create Service Instance
+	clientService, err := platform_service.NewClientsService(dbProps)
+	if err != nil {
+		log.Println("Client DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Client DB Connection Error", ErrorDetail: "Client DB Connection Error"}
+		return nil, err
+	}
+	defer clientService.EndService()
+
+	log.Println("authenticateAppClient ", clientId, clientSecret)
+
+	clientData, err := clientService.Authenticate(clientId, clientSecret)
+	if err != nil {
+		log.Println("Auth DB Error ", err)
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
+		return nil, err
+	}
+
+	return clientData, err
+}
+
 func authenticateSysUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
 
 	// Get Scope values if anything passed
@@ -179,4 +212,49 @@ func authenticateAppUser(dbProps utils.Map, dataAuth utils.Map) (utils.Map, erro
 	}
 
 	return appUserData, nil
+}
+
+func isBusinessExist(dbProps utils.Map, businessId string) (utils.Map, error) {
+	// User Validation
+	bizService, err := platform_service.NewBusinessService(dbProps)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 417, ErrorMsg: "Status Expectation Failed", ErrorDetail: "Authentication Failure"}
+		return nil, err
+	}
+	defer bizService.EndService()
+
+	log.Println("isBusinessExist::Parameter Value ", businessId)
+	bizData, err := bizService.Get(businessId)
+	if err != nil {
+		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid BusinessId", ErrorDetail: "No such BusinessId found"}
+		return nil, err
+	}
+
+	return bizData, nil
+}
+
+func validateUserRegBusiness(dbProps utils.Map, businessId, appUserId string) (utils.Map, error) {
+	// User Validation
+	svcAppUser, err := platform_service.NewAppUserService(dbProps)
+	if err != nil {
+		err := &utils.AppError{
+			ErrorStatus: 417,
+			ErrorMsg:    "Status Expectation Failed",
+			ErrorDetail: "Authentication Failure"}
+		return nil, err
+	}
+	defer svcAppUser.EndService()
+
+	log.Println("isBusinessExist::Parameter Value ", businessId)
+	bizData, err := svcAppUser.BusinessUser(businessId, appUserId)
+	if err != nil {
+		err := &utils.AppError{
+			ErrorStatus: 401,
+			ErrorMsg:    "Invalid BusinessId/UserId",
+			ErrorDetail: "User not registered with this business"}
+		return nil, err
+	}
+
+	return bizData, nil
+
 }
