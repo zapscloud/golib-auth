@@ -185,6 +185,10 @@ func GetRefreshToken(ctx *fiber.Ctx) (Claims, error) {
 	return claims, nil
 }
 
+func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
+	return authenticateClient(dbProps, dataAuth)
+}
+
 /**************************************************************************************
 **
 ** ValidateAuthCredentials:
