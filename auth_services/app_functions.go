@@ -4,7 +4,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zapscloud/golib-auth/auth_common"
 	"github.com/zapscloud/golib-platform-repository/platform_common"
@@ -12,54 +11,26 @@ import (
 	"github.com/zapscloud/golib-utils/utils"
 )
 
-// func GetFunctionList(app_functions []app.AppFunction) (functions []string) {
-// 	for _, value := range app_functions {
-// 		functions = append(functions, value.String())
-// 	}
-// 	return
-// }
-
-func getBearerAuth(ctx *fiber.Ctx) (string, error) {
-	// Get authorization header
-	authstring := ctx.Get(fiber.HeaderAuthorization)
-
-	//log.Println("GetBearerAuth Token:", authstring)
+// validateBearerAuth -- Authenticate Application Request
+func validateBearerAuth(authToken string, claims jwt.Claims) error {
 
 	// Check if the header contains content besides "bearer".
-	if len(authstring) <= 7 || strings.ToLower(authstring[:6]) != auth_common.TOKEN_BEARER {
+	if len(authToken) <= 7 || strings.ToLower(authToken[:6]) != auth_common.TOKEN_BEARER {
 		err := &utils.AppError{
 			ErrorStatus: 401,
 			ErrorCode:   "401",
 			ErrorMsg:    "Bad Request Bearer Header",
 			ErrorDetail: "Missing Authorization Bearer Header"}
-		return "", err
+		return err
 	}
 
 	// Decode the header contents
-	authtoken := authstring[7:]
+	authtoken := authToken[7:]
 	if len(authtoken) < 1 {
 		err := &utils.AppError{
 			ErrorStatus: 401,
 			ErrorMsg:    "Bad Request Bearer Token",
 			ErrorDetail: "Missing Authorization Bearer Token"}
-		return "", err
-	}
-
-	//log.Println("Auth Token ", authtoken)
-	return authtoken, nil
-
-}
-
-// validateBearerAuth -- Authenticate Application Request
-func ValidateBearerAuth(ctx *fiber.Ctx, claims jwt.Claims) error {
-
-	//log.Printf("ValidateBearerAuth %v", ctx.Request().Header.String())
-
-	// verify auth credentials
-	authtoken, err := getBearerAuth(ctx)
-	//log.Println("Bearer Auth Token ", authtoken, err)
-	if err != nil {
-		err := &utils.AppError{ErrorStatus: 401, ErrorMsg: "Invalid Access", ErrorDetail: "Authentication Failure"}
 		return err
 	}
 

@@ -35,7 +35,11 @@ func init() {
 func AuthValidate(ctx *fiber.Ctx) (Claims, error) { // for validation process
 	//  validation process Start
 	claims := Claims{}
-	err := ValidateBearerAuth(ctx, &claims)
+
+	// Get authorization header
+	authToken := ctx.Get(fiber.HeaderAuthorization)
+
+	err := validateBearerAuth(authToken, &claims)
 	if err != nil {
 		log.Println("err for final ", err)
 		return claims, err
