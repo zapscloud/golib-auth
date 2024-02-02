@@ -122,7 +122,7 @@ func GetAuthToken(authClaims Claims) Claims {
 **
 **
 ***************************************************************************************/
-func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
+func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map, calledFromPlatformController bool) (utils.Map, error) {
 
 	log.Printf("ValidateAppAuth %v", dataAuth)
 
@@ -137,41 +137,28 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 	clientType := clientData[platform_common.FLD_CLIENT_TYPE].(string)
 	clientScope := clientData[platform_common.FLD_CLIENT_SCOPE].(string)
 
-	// Obtain BusinessId value
-	var businessId string = ""
-
-	switch clientType {
-	case auth_common.CLIENT_TYPE_COMMON_APP:
-		if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
-			// BusinessId not needed so skip it
-		} else {
-			// Get Scope values if anything passed
-			mapScopes := ParseScope(dataAuth)
-			// For all other cases like WebApp, MobileApp and etc
-			businessId, err = utils.GetMemberDataStr(mapScopes, auth_common.SCOPE_BUSINESS_ID)
-			if err != nil {
-				return nil, err
-			}
-		}
-	case auth_common.CLIENT_TYPE_BUSINESS_APP:
-		// ClientScope will be considered as BusinessId
-		businessId = clientScope // Take clientScope as businessId
-	}
-
-	// Validate BusinessId is exist
-	if !utils.IsEmpty(businessId) {
-		_, err = isBusinessExist(dbProps, businessId)
+	if !calledFromPlatformController {
+		// Validate BusinessId
+		businessId, err := validateBusinessId(clientType, clientScope, dataAuth)
 		if err != nil {
 			return nil, err
 		}
 
-		// Assign BusinessId in AuthData
-		dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
+		// Validate BusinessId is exist
+		if !utils.IsEmpty(businessId) {
+			_, err = isBusinessExist(dbProps, businessId)
+			if err != nil {
+				return nil, err
+			}
+
+			// Assign BusinessId in AuthData
+			dataAuth[platform_common.FLD_BUSINESS_ID] = businessId
+		}
 	}
 
 	// Get the GrantType
 	grantType := dataAuth[auth_common.GRANT_TYPE].(string)
-
+	// Switch grantTye
 	switch grantType {
 	//
 	// ============[ Grant_Type: Client Credentials ] ========================================
@@ -206,10 +193,14 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map) (utils.Map, e
 			}
 
 			appUserId, _ := utils.GetMemberDataStr(appUserData, platform_common.FLD_APP_USER_ID)
-			// Verify whether this user registered in the businessId which received
-			_, err = validateUserRegBusiness(dbProps, businessId, appUserId)
-			if err != nil {
-				return utils.Map{}, err
+
+			businessId, err := utils.GetMemberDataStr(dataAuth, platform_common.FLD_BUSINESS_ID)
+			if err == nil {
+				// Verify whether this user registered in the businessId which received
+				_, err = validateUserRegBusiness(dbProps, businessId, appUserId)
+				if err != nil {
+					return utils.Map{}, err
+				}
 			}
 
 			// Update AppUserId to AuthData
@@ -253,4 +244,30 @@ func Map2Claims(authData utils.Map) Claims {
 	}
 
 	return authClaims
+}
+
+func validateBusinessId(clientType string, clientScope string, dataAuth utils.Map) (string, error) {
+	// Obtain BusinessId value
+	var businessId string = ""
+	var err error = nil
+
+	switch clientType {
+	case auth_common.CLIENT_TYPE_COMMON_APP:
+		if clientScope == auth_common.CLIENT_SCOPE_PLATFORM {
+			// BusinessId not needed so skip it
+		} else {
+			// Get Scope values if anything passed
+			mapScopes := ParseScope(dataAuth)
+			// For all other cases like WebApp, MobileApp and etc
+			businessId, err = utils.GetMemberDataStr(mapScopes, auth_common.SCOPE_BUSINESS_ID)
+			if err != nil {
+				return "", err
+			}
+		}
+	case auth_common.CLIENT_TYPE_BUSINESS_APP:
+		// ClientScope will be considered as BusinessId
+		businessId = clientScope // Take clientScope as businessId
+	}
+
+	return businessId, err
 }
