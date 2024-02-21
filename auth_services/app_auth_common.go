@@ -221,6 +221,15 @@ func ValidateAuthCredential(dbProps utils.Map, dataAuth utils.Map, calledFromPla
 	return dataAuth, nil
 }
 
+/*
+************************
+For backward compatibility
+*************************
+*/
+func AuthenticateClient(dbProps utils.Map, dataAuth utils.Map) (utils.Map, error) {
+	return authenticateClient(dbProps, dataAuth)
+}
+
 func Map2Claims(authData utils.Map) Claims {
 	var authClaims Claims
 
